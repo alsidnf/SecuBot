@@ -1,0 +1,17 @@
+name: SecuBot PoC Test
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+
+jobs:
+  secubot-check:
+    # Uses the workflow in the same repository
+    uses: ./.github/workflows/secubot.yml
+    with:
+      context_lines: "20"
+      max_findings: "5"
+      secubot_repository: "current"
+    secrets:
+      LLM_ENDPOINT: ${{ secrets.LLM_ENDPOINT }}
+      LLM_API_KEY: ${{ secrets.LLM_API_KEY }}

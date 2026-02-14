@@ -1,0 +1,70 @@
+name: secuBot - run
+
+on:
+  workflow_call:
+    inputs:
+      context_lines:
+        type: string
+        default: "20"
+      max_findings:
+        type: string
+        default: "5"
+      max_input_chars:
+        type: string
+        default: "60000"
+      llm_api_style:
+        type: string
+        default: "simple"
+      secubot_repository:
+        type: string
+        description: "The repository where SecuBot source code is located"
+        default: "current" # If 'current', uses github.repository (self-test mode)
+    secrets:
+      LLM_ENDPOINT:
+        required: true
+      LLM_API_KEY:
+        required: false
+
+jobs:
+  run:
+    runs-on: [self-hosted]
+
+    permissions:
+      contents: read
+      pull-requests: write
+      checks: write
+
+    steps:
+      - name: Checkout head
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          fetch-depth: 1
+
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+
+      - name: Checkout secuBot source
+        uses: actions/checkout@v4
+        with:
+          repository: ${{ inputs.secubot_repository == 'current' && github.repository || inputs.secubot_repository }}
+          # ref: ${{ github.workflow_ref }} # Might need adjustment depending on how it's called
+          path: secubot-src
+          fetch-depth: 1
+
+      - name: Build secuBot
+        run: mvn -q -f secubot-src/pom.xml -DskipTests package
+
+      - name: Run secuBot
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          java -jar secubot-src/target/secubot.jar \
+            --llm-endpoint="${{ secrets.LLM_ENDPOINT }}" \
+            --llm-api-key="${{ secrets.LLM_API_KEY }}" \
+            --github-token="${{ secrets.GITHUB_TOKEN }}" \
+            --context-lines="${{ inputs.context_lines }}" \
+            --knowledge-base-path="secubot-src/knowledge-base"
