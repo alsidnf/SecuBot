@@ -21,21 +21,49 @@ public class SimpleKeywordRetriever {
         // keyword mapping.
 
         if (containsSqlInjectionKeywords(codeDiff)) {
-            String doc = knowledgeBase.get("SQL_Injection_Prevention.md");
-            if (doc != null) {
-                relevantDocs.add(doc);
-            }
+            addDocIfPresent(relevantDocs, "SQL_Injection_Prevention.md");
         }
-
-        // Add more checks here for other vulnerabilities
+        if (containsXssKeywords(codeDiff)) {
+            addDocIfPresent(relevantDocs, "XSS_Prevention.md");
+        }
+        if (containsSensitveDataKeywords(codeDiff)) {
+            addDocIfPresent(relevantDocs, "Sensitive_Data_Exposure.md");
+        }
+        if (containsGdprKeywords(codeDiff)) {
+            addDocIfPresent(relevantDocs, "GDPR_Personal_Data_Encryption.md");
+        }
 
         return relevantDocs;
     }
 
+    private void addDocIfPresent(List<String> docs, String filename) {
+        String doc = knowledgeBase.get(filename);
+        if (doc != null) {
+            docs.add(doc);
+        }
+    }
+
     private boolean containsSqlInjectionKeywords(String codeDiff) {
         String lowerDiff = codeDiff.toLowerCase();
-        // Check for common SQL injection patterns in the diff
         return (lowerDiff.contains("select") || lowerDiff.contains("insert") || lowerDiff.contains("update"))
                 && (lowerDiff.contains("+") || lowerDiff.contains("concat"));
+    }
+
+    private boolean containsXssKeywords(String codeDiff) {
+        String lowerDiff = codeDiff.toLowerCase();
+        return lowerDiff.contains("request.getparameter") || lowerDiff.contains("response.getwriter")
+                || lowerDiff.contains("innerhtml") || lowerDiff.contains("redirect");
+    }
+
+    private boolean containsSensitveDataKeywords(String codeDiff) {
+        String lowerDiff = codeDiff.toLowerCase();
+        return lowerDiff.contains("apikey") || lowerDiff.contains("password") || lowerDiff.contains("secret")
+                || lowerDiff.contains("token") || lowerDiff.contains("printstacktrace");
+    }
+
+    private boolean containsGdprKeywords(String codeDiff) {
+        String lowerDiff = codeDiff.toLowerCase();
+        return lowerDiff.contains("email") || lowerDiff.contains("phone") || lowerDiff.contains("ssn")
+                || lowerDiff.contains("user") || lowerDiff.contains("address");
     }
 }
