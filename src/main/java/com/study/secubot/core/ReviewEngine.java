@@ -1,7 +1,7 @@
 package com.study.secubot.core;
 
 import com.study.secubot.llm.LLMClient;
-import com.study.secubot.rag.SimpleKeywordRetriever;
+import com.study.secubot.rag.VectorStoreRetriever;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
@@ -11,10 +11,10 @@ import java.util.List;
 public class ReviewEngine {
 
     private final LLMClient llmClient;
-    private final SimpleKeywordRetriever retriever;
+    private final VectorStoreRetriever retriever;
     private final ObjectMapper mapper = new ObjectMapper();
 
-    public ReviewEngine(LLMClient llmClient, SimpleKeywordRetriever retriever) {
+    public ReviewEngine(LLMClient llmClient, VectorStoreRetriever retriever) {
         this.llmClient = llmClient;
         this.retriever = retriever;
     }

@@ -6,13 +6,21 @@ import com.study.secubot.core.ReviewEngine;
 import com.study.secubot.github.GitHubService;
 import com.study.secubot.github.GitHubServiceImpl;
 import com.study.secubot.llm.InternalLLMClient;
+import com.study.secubot.llm.LLMClient;
 import com.study.secubot.rag.KnowledgeBaseLoader;
-import com.study.secubot.rag.SimpleKeywordRetriever;
+import com.study.secubot.rag.VectorStoreRetriever;
+
+import dev.langchain4j.data.segment.TextSegment;
+import dev.langchain4j.model.embedding.AllMiniLmL6V2EmbeddingModel;
+import dev.langchain4j.model.embedding.EmbeddingModel;
+import dev.langchain4j.store.embedding.EmbeddingStore;
+import dev.langchain4j.store.embedding.inmemory.InMemoryEmbeddingStore;
 import picocli.CommandLine;
 import picocli.CommandLine.Command;
 import picocli.CommandLine.Option;
 
 import java.io.File;
+import java.io.IOException;
 import java.util.concurrent.Callable;
 
 @Command(name = "secubot", mixinStandardHelpOptions = true, version = "secubot 1.0", description = "Automated Security Review Bot for Pull Requests")
@@ -46,11 +54,23 @@ public class CheckRunner implements Callable<Integer> {
     public Integer call() throws Exception {
         // 1. Initialize Components
         GitHubService gitHubService = new GitHubServiceImpl(githubToken);
-        KnowledgeBaseLoader kbLoader = new KnowledgeBaseLoader(knowledgeBasePath);
-        kbLoader.load();
-
-        SimpleKeywordRetriever retriever = new SimpleKeywordRetriever(kbLoader.getKnowledgeBase());
         InternalLLMClient llmClient = new InternalLLMClient(llmEndpoint, llmApiKey);
+
+        // Initialize Vector Search components
+        EmbeddingModel embeddingModel = new AllMiniLmL6V2EmbeddingModel();
+        EmbeddingStore<TextSegment> embeddingStore = new InMemoryEmbeddingStore<>();
+
+        // Load Knowledge Base
+        KnowledgeBaseLoader kbLoader = new KnowledgeBaseLoader(knowledgeBasePath, embeddingStore, embeddingModel);
+        try {
+            kbLoader.load();
+        } catch (IOException e) {
+            System.err.println("Failed to load knowledge base: " + e.getMessage());
+            return 1; // Return non-zero to indicate failure
+        }
+
+        // Initialize Retriever
+        VectorStoreRetriever retriever = new VectorStoreRetriever(embeddingStore, embeddingModel);
         ReviewEngine engine = new ReviewEngine(llmClient, retriever);
 
         // 2. Resolve PR URL (CLI arg or Event File)
