@@ -6,6 +6,7 @@ import java.util.concurrent.Callable;
 
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.CommandLineRunner;
+import org.springframework.boot.ExitCodeGenerator;
 import org.springframework.stereotype.Component;
 
 import com.fasterxml.jackson.databind.JsonNode;
@@ -19,11 +20,13 @@ import picocli.CommandLine.Command;
 
 @Component
 @Command(name = "secubot", mixinStandardHelpOptions = true, version = "secubot 1.0", description = "Automated Security Review Bot for Pull Requests")
-public class CheckRunner implements CommandLineRunner, Callable<Integer> {
+public class CheckRunner implements CommandLineRunner, Callable<Integer>, ExitCodeGenerator {
 
     private final GitHubService gitHubService;
     private final ReviewEngine engine;
     private final KnowledgeBaseLoader kbLoader;
+
+    private int exitCode;
 
     @Value("${pr-url:}")
     private String prUrl;
@@ -39,7 +42,12 @@ public class CheckRunner implements CommandLineRunner, Callable<Integer> {
 
     @Override
     public void run(String... args) throws Exception {
-        new CommandLine(this).execute(args);
+        this.exitCode = new CommandLine(this).execute(args);
+    }
+
+    @Override
+    public int getExitCode() {
+        return this.exitCode;
     }
 
     @Override

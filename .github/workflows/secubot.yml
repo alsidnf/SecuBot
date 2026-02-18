@@ -67,5 +67,5 @@ jobs:
             -Dsecubot.llm.api-key="${{ secrets.LLM_API_KEY }}" \
             -Dsecubot.github.token="${{ secrets.GITHUB_TOKEN }}" \
             -Dcontext-lines="${{ inputs.context_lines }}" \
-            -Dknowledge-base-path="secubot-src/knowledge-base" \
+            -Dsecubot.knowledge-base.path="secubot-src/knowledge-base" \
             -jar secubot-src/target/secubot.jar
