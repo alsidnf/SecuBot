@@ -63,8 +63,8 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           java -jar secubot-src/target/secubot.jar \
-            --llm-endpoint="${{ secrets.LLM_ENDPOINT }}" \
-            --llm-api-key="${{ secrets.LLM_API_KEY }}" \
-            --github-token="${{ secrets.GITHUB_TOKEN }}" \
-            --context-lines="${{ inputs.context_lines }}" \
-            --knowledge-base-path="secubot-src/knowledge-base"
+            -Dsecubot.llm.endpoint="${{ secrets.LLM_ENDPOINT }}" \
+            -Dsecubot.llm.api-key="${{ secrets.LLM_API_KEY }}" \
+            -Dsecubot.github.token="${{ secrets.GITHUB_TOKEN }}" \
+            -Dcontext-lines="${{ inputs.context_lines }}" \
+            -Dknowledge-base-path="secubot-src/knowledge-base"
