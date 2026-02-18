@@ -15,11 +15,13 @@ import com.study.secubot.core.ReviewEngine;
 import com.study.secubot.github.GitHubService;
 import com.study.secubot.rag.KnowledgeBaseLoader;
 
+import lombok.extern.slf4j.Slf4j;
 import picocli.CommandLine;
 import picocli.CommandLine.Command;
 
 @Component
 @Command(name = "secubot", mixinStandardHelpOptions = true, version = "secubot 1.0", description = "Automated Security Review Bot for Pull Requests")
+@Slf4j
 public class CheckRunner implements CommandLineRunner, Callable<Integer>, ExitCodeGenerator {
 
     private final GitHubService gitHubService;
@@ -56,7 +58,7 @@ public class CheckRunner implements CommandLineRunner, Callable<Integer>, ExitCo
         try {
             kbLoader.load();
         } catch (IOException e) {
-            System.err.println("Failed to load knowledge base: " + e.getMessage());
+            log.error("Failed to load knowledge base: " + e.getMessage());
             return 1;
         }
 
@@ -67,34 +69,36 @@ public class CheckRunner implements CommandLineRunner, Callable<Integer>, ExitCo
         }
 
         if (targetPrUrl == null) {
-            System.err.println("Error: Could not determine Pull Request URL.");
+            log.error("Error: Could not determine Pull Request URL.");
             return 1;
         }
 
-        System.out.println("Processing PR: " + targetPrUrl);
+        log.info("Processing PR: " + targetPrUrl);
 
         try {
             // 3. Fetch Diff
             String diff = gitHubService.getPullRequestDiff(targetPrUrl);
-            System.out.println("Fetched diff size: " + diff.length());
+            log.info("Fetched diff size: " + diff.length());
 
             // 4. Run Review
+            log.info("Running security review...");
             ReviewEngine.ReviewResult result = engine.process(diff);
 
             // 5. Post Comment
+            log.info("Posting comment...");
             String commentBody = buildCommentBody(result);
             gitHubService.postComment(targetPrUrl, commentBody);
 
             // 6. Block if High Risk
             if ("HIGH".equalsIgnoreCase(result.riskLevel) || "CRITICAL".equalsIgnoreCase(result.riskLevel)) {
-                System.err.println("Blocking PR due to HIGH/CRITICAL risk.");
+                log.error("Blocking PR due to HIGH/CRITICAL risk.");
                 return 1;
             }
 
             return 0;
 
         } catch (Exception e) {
-            e.printStackTrace();
+            log.error("Error processing PR: " + e.getMessage());
             return 1;
         }
     }

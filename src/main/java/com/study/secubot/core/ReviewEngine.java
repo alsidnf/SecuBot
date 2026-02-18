@@ -11,8 +11,10 @@ import com.study.secubot.rag.VectorStoreRetriever;
 
 import dev.langchain4j.model.chat.ChatModel;
 import dev.langchain4j.model.chat.response.ChatResponse;
+import lombok.extern.slf4j.Slf4j;
 
 @Service
+@Slf4j
 public class ReviewEngine {
 
     private final ChatModel chatModel;
@@ -27,14 +29,19 @@ public class ReviewEngine {
     }
 
     public ReviewResult process(String diff) throws IOException {
+        log.info("Starting security review for diff size: {}", diff.length());
+
         // 1. Retrieve Context (RAG)
         List<String> contextDocs = retriever.retrieve(diff);
+        log.info("Retrieved {} context documents", contextDocs.size());
         String context = String.join("\n\n", contextDocs);
 
         // 2. Call LLM
+        log.info("Calling LLM...");
         ChatResponse response = chatModel.chat(
                 messageBuilder.buildSecurityReviewRequest(diff, context));
         String llmResponse = response.aiMessage().text();
+        log.debug("LLM Response: {}", llmResponse);
 
         // 3. Parse LLM Response
         // Expected JSON: { "risk_level": "...", "summary": "..." }
@@ -44,8 +51,10 @@ public class ReviewEngine {
             JsonNode node = mapper.readTree(jsonContent);
             String riskLevel = node.path("risk_level").asText("UNKNOWN");
             String summary = node.path("summary").asText("No summary provided.");
+            log.info("Review completed. Risk Level: {}", riskLevel);
             return new ReviewResult(riskLevel, summary, context);
         } catch (Exception e) {
+            log.error("Failed to parse LLM response: {}", llmResponse, e);
             // Fallback if LLM response is not JSON
             return new ReviewResult("UNKNOWN", llmResponse, context);
         }
