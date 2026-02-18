@@ -41,6 +41,7 @@ public class ReviewEngine {
         ChatResponse response = chatModel.chat(
                 messageBuilder.buildSecurityReviewRequest(diff, context));
         String llmResponse = response.aiMessage().text();
+        log.info("LLM Response: {}", llmResponse.length());
         log.debug("LLM Response: {}", llmResponse);
 
         // 3. Parse LLM Response
