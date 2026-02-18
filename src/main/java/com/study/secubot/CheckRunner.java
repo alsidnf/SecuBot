@@ -1,77 +1,55 @@
 package com.study.secubot;
 
+import java.io.File;
+import java.io.IOException;
+
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.boot.CommandLineRunner;
+import org.springframework.stereotype.Component;
+
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.study.secubot.core.ReviewEngine;
 import com.study.secubot.github.GitHubService;
-import com.study.secubot.github.GitHubServiceImpl;
-import com.study.secubot.llm.InternalLLMClient;
-import com.study.secubot.llm.LLMClient;
 import com.study.secubot.rag.KnowledgeBaseLoader;
-import com.study.secubot.rag.VectorStoreRetriever;
 
-import dev.langchain4j.data.segment.TextSegment;
-import dev.langchain4j.model.embedding.AllMiniLmL6V2EmbeddingModel;
-import dev.langchain4j.model.embedding.EmbeddingModel;
-import dev.langchain4j.store.embedding.EmbeddingStore;
-import dev.langchain4j.store.embedding.inmemory.InMemoryEmbeddingStore;
 import picocli.CommandLine;
 import picocli.CommandLine.Command;
-import picocli.CommandLine.Option;
 
-import java.io.File;
-import java.io.IOException;
-import java.util.concurrent.Callable;
-
+@Component
 @Command(name = "secubot", mixinStandardHelpOptions = true, version = "secubot 1.0", description = "Automated Security Review Bot for Pull Requests")
-public class CheckRunner implements Callable<Integer> {
+public class CheckRunner implements CommandLineRunner {
 
-    @Option(names = { "--llm-endpoint" }, description = "LLM API Endpoint", required = true)
-    private String llmEndpoint;
+    private final GitHubService gitHubService;
+    private final ReviewEngine engine;
+    private final KnowledgeBaseLoader kbLoader;
 
-    @Option(names = { "--llm-api-key" }, description = "LLM API Key")
-    private String llmApiKey;
-
-    @Option(names = { "--github-token" }, description = "GitHub Token")
-    private String githubToken;
-
-    @Option(names = { "--pr-url" }, description = "Pull Request URL")
+    @Value("${pr-url:}")
     private String prUrl;
 
-    @Option(names = { "--context-lines" }, defaultValue = "20", description = "Context lines for diff")
+    @Value("${context-lines:20}")
     private int contextLines;
 
-    @Option(names = {
-            "--knowledge-base-path" }, defaultValue = "knowledge-base", description = "Path to RAG knowledge base")
-    private String knowledgeBasePath;
-
-    public static void main(String[] args) {
-        int exitCode = new CommandLine(new CheckRunner()).execute(args);
-        System.exit(exitCode);
+    public CheckRunner(GitHubService gitHubService, ReviewEngine engine, KnowledgeBaseLoader kbLoader) {
+        this.gitHubService = gitHubService;
+        this.engine = engine;
+        this.kbLoader = kbLoader;
     }
 
     @Override
-    public Integer call() throws Exception {
-        // 1. Initialize Components
-        GitHubService gitHubService = new GitHubServiceImpl(githubToken);
-        InternalLLMClient llmClient = new InternalLLMClient(llmEndpoint, llmApiKey);
+    public void run(String... args) throws Exception {
+        new CommandLine(this).execute(args);
+    }
 
-        // Initialize Vector Search components
-        EmbeddingModel embeddingModel = new AllMiniLmL6V2EmbeddingModel();
-        EmbeddingStore<TextSegment> embeddingStore = new InMemoryEmbeddingStore<>();
-
-        // Load Knowledge Base
-        KnowledgeBaseLoader kbLoader = new KnowledgeBaseLoader(knowledgeBasePath, embeddingStore, embeddingModel);
+    @Command(name = "scan", description = "Scan a Pull Request")
+    public Integer call() {
+        // 1. Load Knowledge Base
         try {
             kbLoader.load();
         } catch (IOException e) {
             System.err.println("Failed to load knowledge base: " + e.getMessage());
-            return 1; // Return non-zero to indicate failure
+            return 1;
         }
-
-        // Initialize Retriever
-        VectorStoreRetriever retriever = new VectorStoreRetriever(embeddingStore, embeddingModel);
-        ReviewEngine engine = new ReviewEngine(llmClient, retriever);
 
         // 2. Resolve PR URL (CLI arg or Event File)
         String targetPrUrl = prUrl;
@@ -86,24 +64,30 @@ public class CheckRunner implements Callable<Integer> {
 
         System.out.println("Processing PR: " + targetPrUrl);
 
-        // 3. Fetch Diff
-        String diff = gitHubService.getPullRequestDiff(targetPrUrl);
-        System.out.println("Fetched diff size: " + diff.length());
+        try {
+            // 3. Fetch Diff
+            String diff = gitHubService.getPullRequestDiff(targetPrUrl);
+            System.out.println("Fetched diff size: " + diff.length());
 
-        // 4. Run Review
-        ReviewEngine.ReviewResult result = engine.process(diff);
+            // 4. Run Review
+            ReviewEngine.ReviewResult result = engine.process(diff);
 
-        // 5. Post Comment
-        String commentBody = buildCommentBody(result);
-        gitHubService.postComment(targetPrUrl, commentBody);
+            // 5. Post Comment
+            String commentBody = buildCommentBody(result);
+            gitHubService.postComment(targetPrUrl, commentBody);
 
-        // 6. Block if High Risk
-        if ("HIGH".equalsIgnoreCase(result.riskLevel) || "CRITICAL".equalsIgnoreCase(result.riskLevel)) {
-            System.err.println("Blocking PR due to HIGH/CRITICAL risk.");
-            return 1; // Non-zero exit code to fail the action
+            // 6. Block if High Risk
+            if ("HIGH".equalsIgnoreCase(result.riskLevel) || "CRITICAL".equalsIgnoreCase(result.riskLevel)) {
+                System.err.println("Blocking PR due to HIGH/CRITICAL risk.");
+                return 1;
+            }
+
+            return 0;
+
+        } catch (Exception e) {
+            e.printStackTrace();
+            return 1;
         }
-
-        return 0;
     }
 
     private String extractPrUrlFromEvent() {

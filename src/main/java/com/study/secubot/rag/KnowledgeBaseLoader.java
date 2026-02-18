@@ -8,6 +8,9 @@ import java.util.List;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.stereotype.Component;
+
 import dev.langchain4j.data.document.Document;
 import dev.langchain4j.data.document.DocumentSplitter;
 import dev.langchain4j.data.document.Metadata;
@@ -17,13 +20,16 @@ import dev.langchain4j.data.segment.TextSegment;
 import dev.langchain4j.model.embedding.EmbeddingModel;
 import dev.langchain4j.store.embedding.EmbeddingStore;
 
+@Component
 public class KnowledgeBaseLoader {
 
     private final Path knowledgeBasePath;
     private final EmbeddingStore<TextSegment> embeddingStore;
     private final EmbeddingModel embeddingModel;
 
-    public KnowledgeBaseLoader(String path, EmbeddingStore<TextSegment> embeddingStore, EmbeddingModel embeddingModel) {
+    public KnowledgeBaseLoader(@Value("${secubot.knowledge-base.path:knowledge-base}") String path,
+            EmbeddingStore<TextSegment> embeddingStore,
+            EmbeddingModel embeddingModel) {
         this.knowledgeBasePath = Paths.get(path);
         this.embeddingStore = embeddingStore;
         this.embeddingModel = embeddingModel;

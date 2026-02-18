@@ -1,0 +1,8 @@
+secubot:
+  github:
+    token: ${GITHUB_TOKEN:}
+  llm:
+    endpoint: ${LLM_ENDPOINT:mock}
+    api-key: ${LLM_API_KEY:}
+  knowledge-base:
+    path: ${KNOWLEDGE_BASE_PATH:knowledge-base}

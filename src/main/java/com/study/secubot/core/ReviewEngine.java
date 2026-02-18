@@ -1,13 +1,16 @@
 package com.study.secubot.core;
 
-import com.study.secubot.llm.LLMClient;
-import com.study.secubot.rag.VectorStoreRetriever;
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
-
 import java.io.IOException;
 import java.util.List;
 
+import org.springframework.stereotype.Service;
+
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.study.secubot.llm.LLMClient;
+import com.study.secubot.rag.VectorStoreRetriever;
+
+@Service
 public class ReviewEngine {
 
     private final LLMClient llmClient;

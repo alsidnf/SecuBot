@@ -6,5 +6,4 @@ public interface GitHubService {
     String getPullRequestDiff(String prUrl) throws IOException;
 
     void postComment(String prUrl, String body) throws IOException;
-    // Add more methods as needed
 }

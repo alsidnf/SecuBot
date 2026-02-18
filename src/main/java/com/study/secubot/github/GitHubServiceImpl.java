@@ -1,18 +1,26 @@
 package com.study.secubot.github;
 
-import okhttp3.*;
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
-
 import java.io.IOException;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+
+import okhttp3.MediaType;
+import okhttp3.OkHttpClient;
+import okhttp3.Request;
+import okhttp3.RequestBody;
+import okhttp3.Response;
+
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.stereotype.Service;
+
+@Service
 public class GitHubServiceImpl implements GitHubService {
 
     private final String token;
     private final OkHttpClient client;
     private final ObjectMapper mapper;
 
-    public GitHubServiceImpl(String token) {
+    public GitHubServiceImpl(@Value("${secubot.github.token}") String token) {
         this.token = token;
         this.client = new OkHttpClient();
         this.mapper = new ObjectMapper();

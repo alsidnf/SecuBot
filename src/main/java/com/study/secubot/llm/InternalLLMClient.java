@@ -1,12 +1,21 @@
 package com.study.secubot.llm;
 
-import okhttp3.*;
-import com.fasterxml.jackson.databind.ObjectMapper;
-
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
 
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.stereotype.Component;
+
+import com.fasterxml.jackson.databind.ObjectMapper;
+
+import okhttp3.MediaType;
+import okhttp3.OkHttpClient;
+import okhttp3.Request;
+import okhttp3.RequestBody;
+import okhttp3.Response;
+
+@Component
 public class InternalLLMClient implements LLMClient {
 
     private final String endpoint;
@@ -14,7 +23,8 @@ public class InternalLLMClient implements LLMClient {
     private final OkHttpClient client;
     private final ObjectMapper mapper;
 
-    public InternalLLMClient(String endpoint, String apiKey) {
+    public InternalLLMClient(@Value("${secubot.llm.endpoint}") String endpoint,
+            @Value("${secubot.llm.api-key}") String apiKey) {
         this.endpoint = endpoint;
         this.apiKey = apiKey;
         this.client = new OkHttpClient();
