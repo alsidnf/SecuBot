@@ -2,6 +2,7 @@ package com.study.secubot;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.concurrent.Callable;
 
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.CommandLineRunner;
@@ -18,7 +19,7 @@ import picocli.CommandLine.Command;
 
 @Component
 @Command(name = "secubot", mixinStandardHelpOptions = true, version = "secubot 1.0", description = "Automated Security Review Bot for Pull Requests")
-public class CheckRunner implements CommandLineRunner {
+public class CheckRunner implements CommandLineRunner, Callable<Integer> {
 
     private final GitHubService gitHubService;
     private final ReviewEngine engine;
@@ -41,7 +42,7 @@ public class CheckRunner implements CommandLineRunner {
         new CommandLine(this).execute(args);
     }
 
-    @Command(name = "scan", description = "Scan a Pull Request")
+    @Override
     public Integer call() {
         // 1. Load Knowledge Base
         try {
