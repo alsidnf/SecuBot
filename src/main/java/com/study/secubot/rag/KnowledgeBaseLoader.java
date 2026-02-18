@@ -52,7 +52,8 @@ public class KnowledgeBaseLoader {
                 String fileName = file.getFileName().toString();
 
                 Document document = Document.from(content, Metadata.from("filename", fileName));
-                DocumentSplitter splitter = DocumentSplitters.recursive(300, 0);
+                // Increased chunk size for better context, with overlap to maintain continuity
+                DocumentSplitter splitter = DocumentSplitters.recursive(500, 50);
                 List<TextSegment> segments = splitter.split(document);
                 List<Embedding> embeddings = embeddingModel.embedAll(segments).content();
                 embeddingStore.addAll(embeddings, segments);
