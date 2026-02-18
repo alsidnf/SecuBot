@@ -62,9 +62,10 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          java -jar secubot-src/target/secubot.jar \
+          java \
             -Dsecubot.llm.endpoint="${{ secrets.LLM_ENDPOINT }}" \
             -Dsecubot.llm.api-key="${{ secrets.LLM_API_KEY }}" \
             -Dsecubot.github.token="${{ secrets.GITHUB_TOKEN }}" \
             -Dcontext-lines="${{ inputs.context_lines }}" \
-            -Dknowledge-base-path="secubot-src/knowledge-base"
+            -Dknowledge-base-path="secubot-src/knowledge-base" \
+            -jar secubot-src/target/secubot.jar
